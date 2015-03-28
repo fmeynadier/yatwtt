@@ -1,0 +1,87 @@
+#!/usr/bin/env python3
+""" Taskwarrior Timetracking Tweaker
+
+(c) F. Meynadier Frederic.Meynadier@gmail.com
+"""
+
+__version__="0.1"
+
+import subprocess
+import argparse
+import datetime
+import json
+import re
+
+# For use with yatwtt (https://github.com/fmeynadier/yatwtt) hook
+TIME_FORMAT = '%Y%m%dT%H%M%SZ'
+UDA_KEY = 'timetracking'
+
+class Tttweak():
+    def __init__(self, task_id):
+        self.t_id = task_id
+        self.task_cmd = "task"
+        self.json = json.loads(str(subprocess.check_output([self.task_cmd,
+                                                            "export",
+                                                            self.t_id]),
+                                   encoding="utf8"))[0]
+        self.ranges = []
+
+
+    # TODO : probably a builtin to replace that..
+    def internal_to_datetime(self, string):
+        match = re.search("^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$", 
+                          string)
+        if match == None:
+            return None
+        year = int(match.group(1))
+        month = int(match.group(2))
+        day = int(match.group(3))
+        hour = int(match.group(4))
+        minute = int(match.group(5))
+        second = int(match.group(6))
+        return datetime.datetime(year, month, day, hour, minute, second)
+        self.ranges = []
+
+
+
+    def load_ranges(self):
+        str_ranges = self.json["timetracking"].split(";")
+        for str_rng in str_ranges:
+            if str_rng != "":
+                try:
+                    str_start, str_stop = str_rng.split('-')
+                    dt_stop = self.internal_to_datetime(str_stop)
+                except ValueError:
+                    str_start = str_rng.split('-')
+                    dt_stop = datetime.datetime.now()
+                dt_start = self.internal_to_datetime(str_start)
+
+            self.ranges.append({"start": dt_start,
+                                "stop": dt_stop})
+
+
+    def ls(self):
+        "List all present ranges, print them and give an ID to each"
+        rng_id = len(self.ranges)
+        for rng in self.ranges:
+            print("{} : {}-{}".format(
+                rng_id, 
+                rng["start"].isoformat(), 
+                rng["stop"].isoformat()))
+            rng_id-=1
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        "Tweak time tracking in taskwarrior")
+    parser.add_argument("task_id", type=str, 
+                        help="Taskwarrior task ID")
+    """
+    parser.add_argument("-v","--version",
+                        version="{version}".format(version=__version__))
+    """
+
+    args = parser.parse_args()
+    ttw = Tttweak(args.task_id)
+    ttw.load_ranges()
+    ttw.ls()
