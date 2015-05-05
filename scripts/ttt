@@ -45,7 +45,10 @@ class Tttweak():
     def load_ranges(self):
         """ Loads timetracking data from the json that has been stored upon
         initialisation """
-        str_ranges = self.json["timetracking"].split(";")
+        try:
+            str_ranges = self.json[UDA_KEY].split(";")
+        except KeyError:
+            str_ranges = ""
         for str_rng in str_ranges:
             if str_rng != "":
                 str_start, str_stop = str_rng.split('-')
@@ -68,7 +71,7 @@ class Tttweak():
         if debug:
             print("TaskWarrior arguments : " + tt_uda)
         else:
-                subprocess.check_output([self.task_cmd,
+                subprocess.call([self.task_cmd,
                                  self.t_id,
                                  "modify",
                                  "{}:\"{}\"".format(UDA_KEY, tt_uda)
@@ -76,7 +79,8 @@ class Tttweak():
 
 
     def ls(self):
-        "List all present ranges, print them and give an ID to each"
+        """List all present ranges, print them and give an ID to each
+        """
         rng_id = len(self.ranges)
         for rng in self.ranges:
             if rng["stop"]:
@@ -88,13 +92,36 @@ class Tttweak():
                 ))
             else:
                 # rng["stop"] is None, so task is active
-                now = datetime.datetime.now()
+                now = datetime.datetime.now().replace(microsecond=0)
                 print("{} : {} -> now ({})".format(
                     rng_id,
                     rng["start"].isoformat(),
-                    str(now.replace(microsecond=0) - rng["start"]),
+                    str(now - rng["start"]),
                 ))
-            rng_id-=1
+            rng_id-=1   
+
+    def wait_cmd(self):
+        cmd = input("cmd :")
+
+        now = datetime.datetime.now().replace(microsecond=0)
+
+        if cmd.split()[0] in ["help", "h"]:
+            # Print list of commands
+            print("(h)elp / (d)elete [id] / (w)orked [# hours]")
+        elif cmd.split()[0] in ["d", "del", "delete"]:
+            # Remove designated range from the list
+            del self.ranges[-int(cmd.split()[1])]
+        elif cmd.split()[0] in ["w", "worked"]:
+            # Add a new range : from N hours ago to now
+            self.ranges.append(
+                {"start": now - datetime.timedelta(hours=int(cmd.split()[1])),
+                "stop": now})
+        elif cmd.split()[0] in ["quit", "q", "exit", "e"]:
+            # Exit 
+            pass
+
+
+
 
 
 if __name__ == "__main__":
@@ -104,13 +131,12 @@ if __name__ == "__main__":
                         help="Taskwarrior task ID")
     parser.add_argument("-d", "--debug", action="store_true", 
             help="write UDA to stdout instead of writing it to database")
-    """
-    parser.add_argument("-v","--version",
+    parser.add_argument("-v","--version", action="version",
                         version="{version}".format(version=__version__))
-    """
 
     args = parser.parse_args()
     ttw = Tttweak(args.task_id)
     ttw.load_ranges()
     ttw.ls()
+    ttw.wait_cmd()
     ttw.save_ranges(args.debug)
