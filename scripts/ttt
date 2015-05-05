@@ -42,9 +42,9 @@ class Tttweak():
         return datetime.datetime(year, month, day, hour, minute, second)
         self.ranges = []
 
-
-
     def load_ranges(self):
+        """ Loads timetracking data from the json that has been stored upon
+        initialisation """
         str_ranges = self.json["timetracking"].split(";")
         for str_rng in str_ranges:
             if str_rng != "":
@@ -55,6 +55,24 @@ class Tttweak():
 
                 self.ranges.append({"start": dt_start,
                                     "stop": dt_stop})
+
+    def save_ranges(self, debug):
+        """ Writes the new ranges into the database
+        """
+        tt_uda = ""
+        for rng in self.ranges:
+            tt_uda += rng["start"].strftime(TIME_FORMAT) + "-"
+            if rng["stop"]:
+                tt_uda += rng["stop"].strftime(TIME_FORMAT) + ";"
+
+        if debug:
+            print("TaskWarrior arguments : " + tt_uda)
+        else:
+                subprocess.check_output([self.task_cmd,
+                                 self.t_id,
+                                 "modify",
+                                 "{}:\"{}\"".format(UDA_KEY, tt_uda)
+                                ])
 
 
     def ls(self):
@@ -84,6 +102,8 @@ if __name__ == "__main__":
         "Tweak time tracking in taskwarrior")
     parser.add_argument("task_id", type=str, 
                         help="Taskwarrior task ID")
+    parser.add_argument("-d", "--debug", action="store_true", 
+            help="write UDA to stdout instead of writing it to database")
     """
     parser.add_argument("-v","--version",
                         version="{version}".format(version=__version__))
@@ -93,3 +113,4 @@ if __name__ == "__main__":
     ttw = Tttweak(args.task_id)
     ttw.load_ranges()
     ttw.ls()
+    ttw.save_ranges(args.debug)
