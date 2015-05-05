@@ -48,26 +48,34 @@ class Tttweak():
         str_ranges = self.json["timetracking"].split(";")
         for str_rng in str_ranges:
             if str_rng != "":
-                try:
-                    str_start, str_stop = str_rng.split('-')
-                    dt_stop = self.internal_to_datetime(str_stop)
-                except ValueError:
-                    str_start = str_rng.split('-')
-                    dt_stop = datetime.datetime.now()
+                str_start, str_stop = str_rng.split('-')
+                # dt_stop may be None
+                dt_stop = self.internal_to_datetime(str_stop)
                 dt_start = self.internal_to_datetime(str_start)
 
-            self.ranges.append({"start": dt_start,
-                                "stop": dt_stop})
+                self.ranges.append({"start": dt_start,
+                                    "stop": dt_stop})
 
 
     def ls(self):
         "List all present ranges, print them and give an ID to each"
         rng_id = len(self.ranges)
         for rng in self.ranges:
-            print("{} : {}-{}".format(
-                rng_id, 
-                rng["start"].isoformat(), 
-                rng["stop"].isoformat()))
+            if rng["stop"]:
+                print("{} : {} -> {} ({})".format(
+                    rng_id, 
+                    rng["start"].isoformat(), 
+                    rng["stop"].isoformat(),
+                    str(rng["stop"] - rng["start"]),
+                ))
+            else:
+                # rng["stop"] is None, so task is active
+                now = datetime.datetime.now()
+                print("{} : {} -> now ({})".format(
+                    rng_id,
+                    rng["start"].isoformat(),
+                    str(now.replace(microsecond=0) - rng["start"]),
+                ))
             rng_id-=1
 
 
