@@ -13,11 +13,11 @@ UDA_KEY = 'timetracking'
 old_task = json.loads(sys.stdin.readline())
 mod_task = json.loads(sys.stdin.readline()) 
 
-now = datetime.datetime.now().strftime(TIME_FORMAT)
+now = datetime.datetime.utcnow().strftime(TIME_FORMAT)
 
 # If the "timetracking" UDA does not exist, create it
 if UDA_KEY not in mod_task:
-    mod_task[UDA_KEY] = ";"
+    mod_task[UDA_KEY] = ""
 
 # "start" command used
 if (not 'start' in old_task and 'start' in mod_task):
