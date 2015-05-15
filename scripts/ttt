@@ -9,12 +9,17 @@ __version__="0.1"
 import subprocess
 import argparse
 import datetime
+import pytz
 import json
-import re
+
+# Set local timezone
+local = pytz.timezone('Europe/Paris')
 
 # For use with yatwtt (https://github.com/fmeynadier/yatwtt) hook
+# Time stored in UTC
 TIME_FORMAT = '%Y%m%dT%H%M%SZ'
 UDA_KEY = 'timetracking'
+
 
 class Tttweak():
     def __init__(self, task_id):
@@ -27,21 +32,6 @@ class Tttweak():
         self.ranges = []
 
 
-    # TODO : probably a builtin to replace that..
-    def internal_to_datetime(self, string):
-        match = re.search("^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$", 
-                          string)
-        if match == None:
-            return None
-        year = int(match.group(1))
-        month = int(match.group(2))
-        day = int(match.group(3))
-        hour = int(match.group(4))
-        minute = int(match.group(5))
-        second = int(match.group(6))
-        return datetime.datetime(year, month, day, hour, minute, second)
-        self.ranges = []
-
     def load_ranges(self):
         """ Loads timetracking data from the json that has been stored upon
         initialisation """
@@ -53,11 +43,12 @@ class Tttweak():
             if str_rng != "":
                 str_start, str_stop = str_rng.split('-')
                 # dt_stop may be None
-                dt_stop = self.internal_to_datetime(str_stop)
-                dt_start = self.internal_to_datetime(str_start)
+                dt_stop = datetime.datetime.strptime(str_stop, TIME_FORMAT)
+                dt_start = datetime.datetime.strptime(str_start, TIME_FORMAT)
 
-                self.ranges.append({"start": dt_start,
-                                    "stop": dt_stop})
+                # Time is stored in UTC -> make python aware of this
+                self.ranges.append({"start": pytz.utc.localize(dt_start),
+                                    "stop": pytz.utc.localize(dt_stop)})
 
     def save_ranges(self, debug):
         """ Writes the new ranges into the database
@@ -79,14 +70,15 @@ class Tttweak():
 
 
     def ls(self):
-        """List all present ranges, print them and give an ID to each
+        """List all present ranges, print them (converted to local time)
+        and give an ID to each
         """
         rng_id = len(self.ranges)
         for rng in self.ranges:
             if rng["stop"]:
                 print("{} : {} -> {} ({})".format(
                     rng_id, 
-                    rng["start"].isoformat(), 
+                    rng["start"].astimezone(local).isoformat(), 
                     rng["stop"].isoformat(),
                     str(rng["stop"] - rng["start"]),
                 ))
