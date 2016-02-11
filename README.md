@@ -4,6 +4,13 @@ Yet another Taskwarrior time-tracker
 A (very limited) attempt to add some time-tracking abilities to
 [Taskwarrior](http://www.taskwarrior.org), work in progress.
 
+## Status update :
+I more or less gave up on trying to reimplement a time-tracking system around Taskwarrior... But I found Gnome's [Hamster](https://github.com/projecthamster/hamster) time-tracker to be quite usable, so instead I now use a hook to track time there instead. This hook is very small and can be found here : 
+
+https://github.com/fmeynadier/taskwarrior-hamster-hook.
+
+
+##Goal 
 The aim here is to embed the data within the tasks (so it should be OK with
 servers), using "start" and "stop" TW commands as inputs, but keeping the
 possibility of altering it a posteriori to correct for mistakes or acknowledge
